@@ -433,7 +433,7 @@ class ElelabsUtilities:
         self.serialInterface.serial.readline() # BL > 1
         self.serialInterface.serial.readline() # begin upload
 
-        self.logger.info('Successfully restarted into X-MODEM mode! Starting upload of the new formware... DO NOT INTERRUPT(!)')
+        self.logger.info('Successfully restarted into X-MODEM mode! Starting upload of the new firmware... DO NOT INTERRUPT(!)')
 
         self.currentPacket = 0
         # Wait for char 'C'
