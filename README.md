@@ -123,3 +123,17 @@ If for some reason the `update` or `flash` utility failed and your product is no
 3. try to `flash` the EZSP adapter with the firmware file. If the product is in `btl` mode it will probably work
 4. contact Elelabs: `info at elelabs.com`
 
+# Integration
+
+For integration with OpenHAB please see our [our OpenHAB user guide](https://elelabs.com/wp-content/uploads/2019/02/EZBUSBA_UG_3_OpenHab.pdf).
+
+For integration with Home Assistant see [our Home Assistant user guide](https://elelabs.com/wp-content/uploads/2020/07/ELU013_UG_11_HomeAssistant_Hassio_0.112.4.pdf). *Please note if you are using the EZSP v8 firmware* you will also have to add the following to your `configuration.yaml` for the Home Assistant ZHA integration to load successfully. 
+
+```
+zha:
+  zigpy_config:
+    ezsp_config:
+      CONFIG_APS_UNICAST_MESSAGE_COUNT: 12
+      CONFIG_SOURCE_ROUTE_TABLE_SIZE: 16
+      CONFIG_ADDRESS_TABLE_SIZE: 8
+```
