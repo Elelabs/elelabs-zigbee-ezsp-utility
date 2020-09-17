@@ -5,18 +5,23 @@
 # What is Elelabs EZSP Firmware Update Utility?
 
 
-The Elelabs EZSP Firmware Update Utility is a basic Python3 script to update the firmware inside a range of Elelabs Zigbee products to a newer version.
+The Elelabs EZSP Firmware Update Utility is a basic Python 3 script to flash the the firmware inside a range of Elelabs Zigbee products to a newer (or older) version.
 
-Supported products:
+Currently sold supported products based on Silicon Labs microcontrollers:
 
 - Elelabs Zigbee Raspberry Pi Shield ELR023 (EFR32MG13P Silicon Labs MCU inside)
+  - https://elelabs.com/products/elelabs-zigbee-shield.html
 - Elelabs Zigbee USB Adapter ELU013 (EFR32MG13P Silicon Labs MCU inside)
+  - https://elelabs.com/products/elelabs-usb-adapter.html
+
+Previously sold supported products based on Silicon Labs microcontrollers:
+  
 - Elelabs Zigbee Raspberry Pi Shield ELR022 (EFR32MG1B Silicon Labs MCU inside)
 - Elelabs Zigbee USB Adapter ELU012 (EFR32MG1B Silicon Labs MCU inside)
 - Elelabs Zigbee Raspberry Pi Shield EZBPIS (EM357 Silicon Labs MCU inside) TODO
 - Elelabs Zigbee USB Adapter EZBUSBA (EM357 Silicon Labs MCU inside) TODO
 
-The utility as well supports other generic EZSP adapters from other vendors. But the update firmwares are not provided and there is no warranty that it will work.
+Disclaimer: This utility should also work with other generic EZSP (EmberZNet Serial Protocol) based adapters and modules from other vendors, however firmwares for products not from Elelabs are not provided here and there is no guarantees that that it will work with non-Elelabs products. Be wanted that you may void your warranty and even brick your adapter if the firmware update is not supported by your mnaufacturer.
 
 # Getting Started
 
