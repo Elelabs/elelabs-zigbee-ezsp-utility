@@ -167,7 +167,7 @@ class AshProtocolInterface:
                 self.logger.debug('[ EZSP RESPONSE ] ' + ' '.join(format(x, '02x') for x in msg_parsed))
             return 0, msg, msg_parsed
         else:
-            return 0, msg
+            return 0, msg, None
 
     def sendResetFrame(self):
         self.serial.flushInput()
@@ -175,12 +175,12 @@ class AshProtocolInterface:
         if self.config.dlevel == 'ASH':
             self.logger.debug('[ ASH  REQUEST ] ' + ' '.join(format(x, '02x') for x in self.RSTACK_FRAME_CMD))
         self.serial.write(self.RSTACK_FRAME_CMD)
-        status, response = self.getResponse()
+        status, ash_response, ezsp_response = self.getResponse()
 
         if status:
             return status
 
-        if not (self.RSTACK_FRAME_ACK in response):
+        if not (self.RSTACK_FRAME_ACK in ash_response):
             return -1
 
         return 0
