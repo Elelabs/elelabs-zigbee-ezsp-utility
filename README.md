@@ -2,10 +2,10 @@
 
 ---
 
-# What is Elelabs EZSP Firmware Update Utility?
+# What is Elelabs Firmware Update Utility?
 
 
-The Elelabs EZSP Firmware Update Utility is a basic Python 3 script to flash the the firmware inside a range of Elelabs Zigbee products to a newer (or older) version.
+The Elelabs Firmware Update Utility is a basic Python 3 script to flash the the firmware inside a range of Elelabs Zigbee and Thread products to a newer version.
 
 Currently sold supported products based on Silicon Labs microcontrollers:
 
@@ -21,7 +21,7 @@ Previously sold supported products based on Silicon Labs microcontrollers:
 - Elelabs Zigbee Raspberry Pi Shield EZBPIS (EM357 Silicon Labs MCU inside) TODO
 - Elelabs Zigbee USB Adapter EZBUSBA (EM357 Silicon Labs MCU inside) TODO
 
-Disclaimer: This utility should also work with other generic EZSP (EmberZNet Serial Protocol) based adapters and modules from other vendors, however firmwares for products not from Elelabs are not provided here and there is no guarantees that that it will work with non-Elelabs products. Be wanted that you may void your warranty and even brick your adapter if the firmware update is not supported by your mnaufacturer.
+Disclaimer: This utility should also work with other generic EZSP (EmberZNet Serial Protocol) or Spinel (Openthread Serial Protocol) based adapters and modules from other vendors, however firmwares for products not from Elelabs are not provided here and there is no guarantees that that it will work with non-Elelabs products. Be wanted that you may void your warranty and even brick your adapter if the firmware update is not supported by your mnaufacturer.
 
 # Getting Started
 
@@ -31,8 +31,8 @@ Disclaimer: This utility should also work with other generic EZSP (EmberZNet Ser
 ```
 pip3 install -r requirements.txt
 ```
-- Connect your Elelabs Zigbee EZSP Product to your PC or Raspberry Pi
-- Find out the Serial port number of the Elelabs Zigbee EZSP Product
+- Connect your Elelabs Zigbee/Thread Product to your PC or Raspberry Pi
+- Find out the Serial port number of the Elelabs Zigbee/Thread Product
 
   * For Raspberry Pi Shield it is probably `/dev/ttyAMA0`
   * For USB Adapter on a Linux PC or Raspberry Pi it is probably `/dev/ttyUSB0` (the number 0 may be different)
@@ -44,54 +44,58 @@ pip3 install -r requirements.txt
 python3 Elelabs_EzspFwUtility.py probe -p /dev/ttyUSB0
 ```
 
-![Elelabs Zigbee EZSP utility probe](/img/probe.png?raw=true)
+![Elelabs Zigbee/Thread utility probe](/img/probe_zigbee.png?raw=true)
 
 # How to
-## ele_update – Switch Elelabs Zigbee Products between EZSP v6 and v8
+## ele_update – Switch Elelabs Zigbee/Thread Products between Zigbee and Thread
 
 > only for Elelabs products
 
-The `ele_update` is the easiest way of updating Elelabs Zigbee EZSP Products to a newer version of the EZSP protocol. The firmware update files are stored in the same repository and are automatically selected by the utility itself.
+The `ele_update` is the easiest way of updating Elelabs Zigbee/Thread Products to a newer version or to switch between Zigbee and Thread version. The firmware update files are stored in the same repository and are automatically selected by the utility itself.
 
-Switch to EZSP v8
-
-```
-python3 Elelabs_EzspFwUtility.py ele_update -v v8 -p /dev/ttyS6
-```
-
-![Elelabs Zigbee EZSP utility ele_update v8](/img/ele_update_v8.png?raw=true)
-
-Switch to EZSP v6
+Switch/update to latest Zigbee
 
 ```
-python3 Elelabs_EzspFwUtility.py ele_update -v v6 -p /dev/ttyS6
+python3 Elelabs_EzspFwUtility.py ele_update -p /dev/ttyS6 -v zigbee
 ```
 
-![Elelabs Zigbee EZSP utility ele_update v6](/img/ele_update_v6.png?raw=true)
+![Elelabs Zigbee/Thread utility ele_update zigbee](/img/ele_update_zigbee.png?raw=true)
 
-## probe – Check the version of the connected generic EZSP product
+Switch/update to latest Thread
 
-> for any EZSP product
+```
+python3 Elelabs_EzspFwUtility.py ele_update -p /dev/ttyS6 -v thread
+```
 
-The `probe` is used to detect the version of the connected EZSP product or to detect if the product is in bootloader mode.
+![Elelabs Zigbee/Thread utility ele_update v6](/img/ele_update_thread.png?raw=true)
+
+## probe – Check the version of the connected generic Zigbee/Thread product
+
+> for any EZSP/Spinel product
+
+The `probe` is used to detect the version of the connected Zigbee/Thread product or to detect if the product is in bootloader mode.
 
 ```
 python3 Elelabs_EzspFwUtility.py probe -p /dev/ttyS6
 ```
 
-Product in normal EZSP mode
+Product in Zigbee EZSP mode
 
-![Elelabs Zigbee EZSP utility probe](/img/probe.png?raw=true)
+![Elelabs Zigbee/Thread utility probe](/img/probe_zigbee.png?raw=true)
+
+Product in Thread Spinel mode
+
+![Elelabs Zigbee/Thread utility probe](/img/probe_thread.png?raw=true)
 
 Product in bootloader mode
 
 ![Elelabs Zigbee EZSP utility probe](/img/probe_btl.png?raw=true)
 
-## restart – Restart the connected generic EZSP product in Normal EZSP mode or in Bootloader mode
+## restart – Restart the connected generic Zigbee/Thread product in Normal EZSP/Spinel mode or in Bootloader mode
 
-> for any EZSP product
+> for any EZSP/Spinel product
 
-The `restart` is used to probe the connected EZSP product and restart it in normal or in bootloader mode. The normal mode is regular EZSP operation. The bootloader mode is used only for the firmware update.
+The `restart` is used to probe the connected Zigbee/Thread product and restart it in normal or in bootloader mode. The normal mode is regular EZSP/Spinel operation. The bootloader mode is used only for the firmware update.
 
 Switch from Normal mode to Bootloader mode
 

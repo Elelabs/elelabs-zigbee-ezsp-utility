@@ -23,6 +23,7 @@ import logging
 import binascii
 import argparse
 from xmodem import XMODEM
+from struct import pack
 
 def is_valid_file(parser, arg):
     if not os.path.isfile(arg):
@@ -36,34 +37,35 @@ subparsers = parser.add_subparsers(help='probe, restart, flash, ele_update')
 parser_probe = subparsers.add_parser('probe', help='Check if Elelabs device responds and prints firmware version')
 parser_probe.add_argument('-p','--port', type=str, required=True, help='Serial port for NCP')
 parser_probe.add_argument('-b','--baudrate', type=str, required=False, default=115200, help='Serial baud rate for NCP (115200/57600)')
-parser_probe.add_argument('-d','--dlevel', choices=['ASH', 'EZSP', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
+parser_probe.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
 parser_probe.set_defaults(which='probe')
 
 parser_restart = subparsers.add_parser('restart', help='Restart attached Elelabs Adapter into BOOTLOADER or NORMAL MODE')
 parser_restart.add_argument('-m','--mode', choices=['btl', 'nrml'], required=True, help='Required operation mode')
 parser_restart.add_argument('-p','--port', type=str, required=True, help='Serial port for NCP')
 parser_restart.add_argument('-b','--baudrate', type=str, required=False, default=115200, help='Serial baud rate for NCP (115200/57600)')
-parser_restart.add_argument('-d','--dlevel', choices=['ASH', 'EZSP', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
+parser_restart.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
 parser_restart.set_defaults(which='restart')
 
 parser_flash = subparsers.add_parser('flash', help='Performs update procedure on any generic EZSP product with a new application packaged in an GBL file.')
 parser_flash.add_argument('-f', '--file', type=lambda x: is_valid_file(parser, x), required=True, help='GBL file to upload to the Elelabs product')
 parser_flash.add_argument('-p','--port', type=str, required=True, help='Serial port for the EZSP Product')
 parser_flash.add_argument('-b','--baudrate', type=str, required=False, default=115200, help='Serial baud rate for NCP (115200/57600)')
-parser_flash.add_argument('-d','--dlevel', choices=['ASH', 'EZSP', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
+parser_flash.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
 parser_flash.set_defaults(which='flash')
 
-parser_ele_update = subparsers.add_parser('ele_update', help='Updates the Elelabs product to a specific version of the EZSP protocol')
-parser_ele_update.add_argument('-v','--version', choices=['v6', 'v8'], required=True, help='Required EZSP protocol version')
+parser_ele_update = subparsers.add_parser('ele_update', help='Updates the Elelabs product to a latest available version')
+parser_ele_update.add_argument('-v','--version', choices=['zigbee', 'thread'], required=True, help='Required EZSP protocol version')
 parser_ele_update.add_argument('-p','--port', type=str, required=True, help='Serial port for the Elelabs Product')
 parser_ele_update.add_argument('-b','--baudrate', type=str, required=False, default=115200, help='Serial baud rate for NCP (115200/57600)')
-parser_ele_update.add_argument('-d','--dlevel', choices=['ASH', 'EZSP', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
+parser_ele_update.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
 parser_ele_update.set_defaults(which='ele_update')
 
 class AdapterModeProbeStatus:
-    NORMAL = 0
-    BOOTLOADER = 1
-    ERROR = 2
+    ZIGBEE = 0
+    THREAD = 1
+    BOOTLOADER = 2
+    ERROR = 3
 
 class SerialInterface:
     def __init__(self, port, baudrate):
@@ -121,7 +123,7 @@ class AshProtocolInterface:
         ash_frame += bytearray([crc >> 8, crc & 0xFF])
         ash_frame = self.replaceReservedBytes(ash_frame)
         ash_frame += self.FLAG_BYTE
-        if self.config.dlevel == 'ASH':
+        if self.config.dlevel == 'RAW':
             self.logger.debug('[ ASH  REQUEST ] ' + ' '.join(format(x, '02x') for x in ash_frame))
         return ash_frame
 
@@ -158,12 +160,12 @@ class AshProtocolInterface:
 
         msg = self.revertEscapedBytes(msg)
 
-        if self.config.dlevel == 'ASH':
+        if self.config.dlevel == 'RAW':
             self.logger.debug('[ ASH RESPONSE ] ' + ' '.join(format(x, '02x') for x in msg))
 
         if applyRandomize:
             msg_parsed = self.dataRandomize(bytearray(msg[1:-3]))
-            if self.config.dlevel == 'ASH' or self.config.dlevel == 'EZSP':
+            if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
                 self.logger.debug('[ EZSP RESPONSE ] ' + ' '.join(format(x, '02x') for x in msg_parsed))
             return 0, msg, msg_parsed
         else:
@@ -172,7 +174,7 @@ class AshProtocolInterface:
     def sendResetFrame(self):
         self.serial.flushInput()
         self.logger.debug('RESET FRAME')
-        if self.config.dlevel == 'ASH':
+        if self.config.dlevel == 'RAW':
             self.logger.debug('[ ASH  REQUEST ] ' + ' '.join(format(x, '02x') for x in self.RSTACK_FRAME_CMD))
         self.serial.write(self.RSTACK_FRAME_CMD)
         status, ash_response, ezsp_response = self.getResponse()
@@ -192,7 +194,7 @@ class AshProtocolInterface:
         ack = self.replaceReservedBytes(ack)
         ack += self.FLAG_BYTE
 
-        if self.config.dlevel == 'ASH':
+        if self.config.dlevel == 'RAW':
             self.logger.debug('[ ASH ACK ] ' + ' '.join(format(x, '02x') for x in ack))
         self.serial.write(ack)
 
@@ -248,7 +250,7 @@ class EzspProtocolInterface:
             ezsp_frame[3] = command[0] & 0xFF # LSB
             ezsp_frame[4] = command[0] >> 8  # MSB
 
-        if self.config.dlevel == 'ASH' or self.config.dlevel == 'EZSP':
+        if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
             self.logger.debug('[ EZSP  REQUEST ] ' + ' '.join(format(x, '02x') for x in ezsp_frame))
         return ezsp_frame
 
@@ -294,6 +296,227 @@ class EzspProtocolInterface:
 
         return 0
 
+class HdlcLiteProtocolInterface:
+    HDLC_FLAG = 0x7e
+    HDLC_ESCAPE = 0x7d
+
+    HDLC_FCS_INIT = 0xFFFF
+    HDLC_FCS_POLY = 0x8408
+    HDLC_FCS_GOOD = 0xF0B8
+
+    def __init__(self, serial, config, logger):
+        self.logger = logger
+        self.config = config
+        self.serial = serial
+        self.fcstab = self.mkfcstab()
+
+    def mkfcstab(self):
+        """ Make a static lookup table for byte value to FCS16 result. """
+        polynomial = self.HDLC_FCS_POLY
+
+        def valiter():
+            """ Helper to yield FCS16 table entries for each byte value. """
+            for byte in range(256):
+                fcs = byte
+                i = 8
+                while i:
+                    fcs = (fcs >> 1) ^ polynomial if fcs & 1 else fcs >> 1
+                    i -= 1
+
+                yield fcs & 0xFFFF
+
+        return tuple(valiter())
+
+    def fcs16(self, byte, fcs):
+        fcs = (fcs >> 8) ^ self.fcstab[(fcs ^ byte) & 0xff]
+        return fcs
+
+    def getResponse(self):
+        fcs = self.HDLC_FCS_INIT
+        timeout = time.time() + 3
+        packet = bytearray()
+
+        while (time.time() < timeout):
+            byte = self.serial.read(1)
+            if byte == (self.HDLC_FLAG).to_bytes(1, 'big'):
+                if len(packet) == 0:
+                    # First sync byte
+                    continue
+                else:
+                    # end of packet, go parse
+                    break
+            if byte == self.HDLC_ESCAPE:
+                byte = self.serial.read(1)
+                byte ^= 0x20
+            packet += byte
+            fcs = self.fcs16(int.from_bytes(byte, "little"), fcs)
+
+        if len(packet) == 0:
+            return -1, None
+
+        if self.config.dlevel == 'RAW':
+            self.logger.debug('[ HDLC RESPONSE ]: 7e ' + ' '.join(format(x, '02x') for x in packet) + ' 7e')
+        
+        if fcs != self.HDLC_FCS_GOOD:
+            return -1, None
+        else:
+            packet = packet[:-2]  # remove FCS16 from end
+            packet = pack("%dB" % len(packet), *packet)
+
+        return 0, packet
+
+    def encode_byte(self, byte, packet=[]):
+        """ HDLC encode and append a single byte to the given packet. """
+        if (byte == self.HDLC_ESCAPE) or (byte == self.HDLC_FLAG):
+            packet.append(self.HDLC_ESCAPE)
+            packet.append(byte ^ 0x20)
+        else:
+            packet.append(byte)
+        return packet
+
+    def encode(self, payload=""):
+        """ Return the HDLC encoding of the given packet. """
+        fcs = self.HDLC_FCS_INIT
+        packet = []
+        packet.append(self.HDLC_FLAG)
+        for byte in payload:
+            fcs = self.fcs16(byte, fcs)
+            packet = self.encode_byte(byte, packet)
+
+        fcs ^= 0xffff
+        byte = fcs & 0xFF
+        packet = self.encode_byte(byte, packet)
+        byte = fcs >> 8
+        packet = self.encode_byte(byte, packet)
+        packet.append(self.HDLC_FLAG)
+        packet = pack("%dB" % len(packet), *packet)
+
+        if self.config.dlevel == 'RAW':
+            self.logger.debug("[ HDLC  REQUEST ]: " + ' '.join(format(x, '02x') for x in packet))
+        return packet
+
+    def sendHdlcPacket(self, data):
+        pkt = self.encode(data)
+        self.serial.write(pkt)
+
+        return self.getResponse()
+
+class SpinelProtocolInterface:
+    CMD_PROP_VALUE_GET = 2
+    CMD_PROP_VALUE_SET = 3
+
+    HEADER_ASYNC = 0x80
+    HEADER_DEFAULT = 0x81
+
+    PROP_PROTOCOL_VERSION = 1  # < major, minor [i,i]
+    PROP_NCP_VERSION = 2  # < version string [U]
+
+    PROP_MFG_CUSTOM_VERSION = 0x3C00
+    PROP_MFG_STRING = 0x3C01
+    PROP_MFG_BOARD_NAME = 0x3C02
+
+    CMD_RESET = 1
+    CMD_MFG_LAUNCH_BOOTLOADER = 15360
+
+    def __init__(self, serial, config, logger):
+        self.logger = logger
+        self.config = config
+
+        self.spinelVersion = ""
+        self.hdlc = HdlcLiteProtocolInterface(serial, config, logger)
+
+    def encode_i(self, data):
+        result = bytes()
+        while data:
+            value = data & 0x7F
+            data >>= 7
+            if data:
+                value |= 0x80
+            result = result + pack("<B", value)
+        return result
+
+    def encode_packet(self,
+                      command_id,
+                      payload=bytes()):
+        header = pack(">B", self.HEADER_DEFAULT)
+        cmd = self.encode_i(command_id)
+        pkt = header + cmd + payload
+        return pkt
+
+    def sendSpinelCommand(self, command_id, commandName = '', payload=bytes()):
+        self.logger.debug(commandName)
+
+        pkt = self.encode_packet(command_id, payload)
+
+        if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
+            self.logger.debug("[ SPINEL   REQUEST ]: " + ' '.join(format(x, '02x') for x in pkt))
+
+        status, response = self.hdlc.sendHdlcPacket(pkt)
+
+        if status:
+            raise Exception("sendHdlcPacket status error: %d" % status)
+
+        if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
+            self.logger.debug("[ SPINEL  RESPONSE ]: " + ' '.join(format(x, '02x') for x in response))
+
+        return response
+
+    def propValueGet(self, prop_id):
+        resp = self.sendSpinelCommand(self.CMD_PROP_VALUE_GET, 'CMD_PROP_VALUE_GET %d' % (prop_id), self.encode_i(prop_id))
+
+        if (prop_id > 0xFFFF):
+            raise Exception("prop_id is more than 0xFFFF. Not sure what to do")
+        elif (prop_id > 0xFF):
+            return resp[4:]
+        else:
+            return resp[3:]
+
+    def eleLaunchBtl(self):
+        header = pack(">B", self.HEADER_ASYNC)
+        cmd = self.encode_i(self.CMD_MFG_LAUNCH_BOOTLOADER)
+        pkt = header + cmd
+
+        if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
+            self.logger.debug("[ SPINEL   REQUEST ]: " + ' '.join(format(x, '02x') for x in pkt))
+
+        self.hdlc.sendHdlcPacket(pkt)
+
+    def initSpinelProtocol(self):
+        self.spinelVersion = ""
+
+        header = pack(">B", self.HEADER_ASYNC)
+        cmd = self.encode_i(self.CMD_RESET)
+        pkt = header + cmd
+
+        if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
+            self.logger.debug("[ SPINEL   REQUEST ]: " + ' '.join(format(x, '02x') for x in pkt))
+
+        status, response = self.hdlc.sendHdlcPacket(pkt)
+
+        if status:
+            return status
+
+        if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
+            self.logger.debug("[ SPINEL  RESPONSE ]: " + ' '.join(format(x, '02x') for x in response))
+
+        # request version of the SPINEL protocol
+        counter = 0
+        while self.spinelVersion == "":
+            response = self.sendSpinelCommand(self.CMD_PROP_VALUE_GET, 'CMD_PROP_VALUE_GET %d' % (self.PROP_PROTOCOL_VERSION), self.encode_i(self.PROP_PROTOCOL_VERSION))
+            if response[2] != self.PROP_PROTOCOL_VERSION:
+                # missmatch, request again
+                counter = counter + 1
+                if counter >= 5:
+                    return -1
+                else:
+                    continue
+            self.spinelVersion = "%d.%d"% (response[3],response[4])
+            self.logger.debug("SPINEL v%s detected" % (self.spinelVersion))
+            break
+
+        return 0
+
+
 class ElelabsUtilities:
     def __init__(self, config, logger):
         self.logger = logger
@@ -317,67 +540,104 @@ class ElelabsUtilities:
                 token_data_length, token_data = ezsp.getMfgToken(ezsp.EZSP_MFG_BOARD_NAME, "EZSP_MFG_BOARD_NAME")
                 adapter_name = token_data.decode("ascii", "ignore")
 
-                self.logger.info("Elelabs adapter detected:")
+                self.logger.info("Elelabs Zigbee adapter detected:")
                 self.logger.info("Adapter: %s" % adapter_name)
             else:
                 adapter_name = None
-                self.logger.info("Generic EZSP adapter detected:")
+                self.logger.info("Generic Zigbee EZSP adapter detected:")
 
             self.logger.info("Firmware: %s" % firmware_version)
             self.logger.info("EZSP v%d" % ezsp.ezspVersion)
 
             serialInterface.close()
-            return AdapterModeProbeStatus.NORMAL, ezsp.ezspVersion, firmware_version, adapter_name
+            return AdapterModeProbeStatus.ZIGBEE, adapter_name
         else:
-            if self.config.baudrate != 115200:
+            spinel = SpinelProtocolInterface(serialInterface.serial, self.config, self.logger)
+            spinel_status = spinel.initSpinelProtocol()
+            if spinel_status == 0:
+                property_data = spinel.propValueGet(spinel.PROP_NCP_VERSION)
+                firmware_version = property_data.decode("ascii", "ignore")
+
+                property_data = spinel.propValueGet(spinel.PROP_MFG_STRING)
+                vendor_name = property_data.decode("ascii", "ignore").rstrip('\x00')
+                if vendor_name == "Elelabs":
+                    property_data = spinel.propValueGet(spinel.PROP_MFG_BOARD_NAME)
+                    adapter_name = property_data.decode("ascii", "ignore").rstrip('\x00')
+                    
+                    self.logger.info("Elelabs Thread adapter detected:")
+                    self.logger.info("Adapter: %s"%adapter_name)
+                else:
+                    adapter_name = None
+                    self.logger.info("Generic Thread adapter detected:")
+
+                self.logger.info("Firmware: %s"%firmware_version)
+                self.logger.info("SPINEL v%s" % spinel.spinelVersion)
+
                 serialInterface.close()
-                time.sleep(1)
-                serialInterface = SerialInterface(self.config.port, 115200)
-                serialInterface.open()
+                return AdapterModeProbeStatus.THREAD, adapter_name
+            else:
+                if self.config.baudrate != 115200:
+                    serialInterface.close()
+                    time.sleep(1)
+                    serialInterface = SerialInterface(self.config.port, 115200)
+                    serialInterface.open()
 
-            # check if allready in bootloader mode
-            serialInterface.serial.write(b'\x0A')
-            first_line = serialInterface.serial.readline() # read blank line
-            if len(first_line) == 0:
-                # timeout
+                # check if allready in bootloader mode
+                serialInterface.serial.write(b'\x0D')
+                first_line = serialInterface.serial.readline() # read blank line
+                if len(first_line) == 0:
+                    # timeout
+                    serialInterface.close()
+                    self.logger.info("Couldn't communicate with the adapter in Zigbee (EZSP) mode, Thread (Spinel) mode or bootloader mode")
+                    return AdapterModeProbeStatus.ERROR, None
+
+                btl_info = serialInterface.serial.readline() # read Gecko BTL version or blank line
+
+                self.logger.info("EZSP adapter in bootloader mode detected:")
+                self.logger.info(btl_info.decode("ascii", "ignore")[:-2]) # show Bootloader version
                 serialInterface.close()
-                self.logger.info("Couldn't communicate with the adapter in normal or in bootloader modes")
-                return AdapterModeProbeStatus.ERROR, None, None, None
-
-            btl_info = serialInterface.serial.readline() # read Gecko BTL version or blank line
-
-            self.logger.info("EZSP adapter in bootloader mode detected:")
-            self.logger.info(btl_info.decode("ascii", "ignore")[:-2]) # show Bootloader version
-            serialInterface.close()
-            return AdapterModeProbeStatus.BOOTLOADER, None, None, None
+                return AdapterModeProbeStatus.BOOTLOADER, None
 
     def restart(self, mode):
-        adapter_status, ezsp_version, firmware_version, adapter_name = self.probe()
-        if adapter_status == AdapterModeProbeStatus.NORMAL:
+        adapter_status, adapter_name = self.probe()
+        if adapter_status == AdapterModeProbeStatus.ZIGBEE or adapter_status == AdapterModeProbeStatus.THREAD:
             if mode == 'btl':
                 serialInterface = SerialInterface(self.config.port, self.config.baudrate)
                 serialInterface.open()
 
                 self.logger.info("Launch in bootloader mode")
-                ezsp = EzspProtocolInterface(serialInterface.serial, self.config, self.logger)
-                ezsp_status = ezsp.initEzspProtocol()
-                status = ezsp.launchStandaloneBootloader(ezsp.STANDALONE_BOOTLOADER_NORMAL_MODE, "STANDALONE_BOOTLOADER_NORMAL_MODE")
-                if status:
-                    serialInterface.close()
-                    self.logger.critical("Error launching the adapter in bootloader mode")
-                    return -1
+                if adapter_status == AdapterModeProbeStatus.ZIGBEE:
+                    ezsp = EzspProtocolInterface(serialInterface.serial, self.config, self.logger)
+                    ezsp_status = ezsp.initEzspProtocol()
+                    status = ezsp.launchStandaloneBootloader(ezsp.STANDALONE_BOOTLOADER_NORMAL_MODE, "STANDALONE_BOOTLOADER_NORMAL_MODE")
+                    if status:
+                        serialInterface.close()
+                        self.logger.critical("Error launching the adapter in bootloader mode")
+                        return -1
+                else:
+                    if adapter_name == None:
+                        self.logger.critical("No Elelabs Thread product detected.\r\nWe don't know how to force it into bootloader mode.\r\n Manually launch the product into bootloader mode")
+                        return -1
+
+                    spinel = SpinelProtocolInterface(serialInterface.serial, self.config, self.logger)
+                    spinel_status = spinel.initSpinelProtocol()
+                    if spinel_status:
+                        serialInterface.close()
+                        self.logger.critical("Error launching the adapter in bootloader mode")
+                        return -1
+                    spinel.eleLaunchBtl()
 
                 serialInterface.close()
                 # wait for reboot
                 time.sleep(2)
 
-                adapter_status, ezsp_version, firmware_version, adapter_name = self.probe()
+                adapter_status, adapter_name = self.probe()
                 if adapter_status == AdapterModeProbeStatus.BOOTLOADER:
                     return 0
                 else:
                     return -1
             else:
-                self.logger.info("Allready in EZSP normal mode. No need to restart")
+                self.logger.info("Allready in normal mode. No need to restart")
                 return 0
         elif adapter_status == AdapterModeProbeStatus.BOOTLOADER:
             if mode == 'btl':
@@ -387,7 +647,7 @@ class ElelabsUtilities:
                 serialInterface = SerialInterface(self.config.port, 115200)
                 serialInterface.open()
 
-                self.logger.info("Launch in EZSP normal mode")
+                self.logger.info("Launch in normal application mode")
 
                 # Send Reboot
                 serialInterface.serial.write(b'2')
@@ -396,8 +656,8 @@ class ElelabsUtilities:
                 # wait for reboot
                 time.sleep(2)
 
-                adapter_status, ezsp_version, firmware_version, adapter_name = self.probe()
-                if adapter_status == AdapterModeProbeStatus.NORMAL:
+                adapter_status, adapter_name = self.probe()
+                if adapter_status == AdapterModeProbeStatus.ZIGBEE or adapter_status == AdapterModeProbeStatus.THREAD:
                     return 0
                 else:
                     return -1
@@ -423,6 +683,7 @@ class ElelabsUtilities:
 
         if self.restart("btl"):
             self.logger.critical("EZSP adapter not in the bootloader mode. Can't perform update procedure")
+            return
 
         self.serialInterface = SerialInterface(self.config.port, 115200)
         self.serialInterface.open()
@@ -470,25 +731,17 @@ class ElelabsUtilities:
 
 
     def ele_update(self, new_version):
-        adapter_status, ezsp_version, firmware_version, adapter_name = self.probe()
-        if adapter_status == AdapterModeProbeStatus.NORMAL:
+        adapter_status, adapter_name = self.probe()
+        if adapter_status == AdapterModeProbeStatus.ZIGBEE or adapter_status == AdapterModeProbeStatus.THREAD:
             if adapter_name == None:
-                self.logger.critical("No Elelabs product detected.\r\nUse 'flash' utility for generic EZSP products.\r\nContact info@elelabs.com if you see this meesage for original Elelabs product")
-                return
-
-            if new_version == 'v6' and ezsp_version == 6:
-                self.logger.info("Elelabs product is operating EZSP protocol v%d. No need to update to %s" % (ezsp_version, new_version))
-                return
-
-            if new_version == 'v8' and ezsp_version == 8:
-                self.logger.info("Elelabs product is operating EZSP protocol v%d. No need to update to %s" % (ezsp_version, new_version))
+                self.logger.critical("No Elelabs product detected.\r\nUse 'flash' utility for generic EZSP products.\r\nContact info@elelabs.com if you see this message for original Elelabs product")
                 return
 
             if adapter_name == "ELR023" or adapter_name == "ELU013":
-                if new_version == 'v6':
-                    self.flash("data/ELX0X3_MG13_6.0.3_ezsp_v6.gbl")
-                elif new_version == 'v8':
-                    self.flash("data/ELX0X3_MG13_6.7.0_ezsp_v8.gbl")
+                if new_version == 'thread':
+                    self.flash("data/EFR32MG13/ELE_MG13_ot_rcp_115200_120_211116.gbl")
+                elif new_version == 'zigbee':
+                    self.flash("data/EFR32MG13/ELE_MG13_zb_ncp_115200_610_211112.gbl")
                 else:
                     self.logger.critical("Unknown EZSP version")
             elif adapter_name == "ELR022" or adapter_name == "ELU012":
@@ -496,7 +749,7 @@ class ElelabsUtilities:
             elif adapter_name == "EZBPIS" or adapter_name == "EZBUSBA":
                 self.logger.critical("TODO!. Contact Elelabs at info@elelabs.com")
             else:
-                self.logger.critical("Unknown Elelabs product %s detected.\r\nContact info@elelabs.com if you see this meesage for original Elelabs product" % adapter_name)
+                self.logger.critical("Unknown Elelabs product %s detected.\r\nContact info@elelabs.com if you see this message for original Elelabs product" % adapter_name)
         elif adapter_status == AdapterModeProbeStatus.BOOTLOADER:
             self.logger.critical("The product not in the normal EZSP mode.\r\n'restart' into normal mode or use 'flash' utility instead")
         else:
