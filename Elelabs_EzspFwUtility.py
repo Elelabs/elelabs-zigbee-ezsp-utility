@@ -55,7 +55,7 @@ parser_flash.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'I
 parser_flash.set_defaults(which='flash')
 
 parser_ele_update = subparsers.add_parser('ele_update', help='Updates the Elelabs product to a latest available version')
-parser_ele_update.add_argument('-v','--version', choices=['zigbee', 'thread'], required=True, help='Required EZSP protocol version')
+parser_ele_update.add_argument('-v','--version', choices=['zigbee', 'thread'], required=True, help='Required protocol version')
 parser_ele_update.add_argument('-p','--port', type=str, required=True, help='Serial port for the Elelabs Product')
 parser_ele_update.add_argument('-b','--baudrate', type=str, required=False, default=115200, help='Serial baud rate for NCP (115200/57600)')
 parser_ele_update.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
@@ -337,8 +337,8 @@ class HdlcLiteProtocolInterface:
         packet = bytearray()
 
         while (time.time() < timeout):
-            byte = self.serial.read(1)
-            if byte == (self.HDLC_FLAG).to_bytes(1, 'big'):
+            byte = int.from_bytes(self.serial.read(1), "little")
+            if byte == self.HDLC_FLAG:
                 if len(packet) == 0:
                     # First sync byte
                     continue
@@ -346,10 +346,10 @@ class HdlcLiteProtocolInterface:
                     # end of packet, go parse
                     break
             if byte == self.HDLC_ESCAPE:
-                byte = self.serial.read(1)
+                byte = int.from_bytes(self.serial.read(1), "little")
                 byte ^= 0x20
-            packet += byte
-            fcs = self.fcs16(int.from_bytes(byte, "little"), fcs)
+            packet.append(byte)
+            fcs = self.fcs16(byte, fcs)
 
         if len(packet) == 0:
             return -1, None
@@ -495,6 +495,11 @@ class SpinelProtocolInterface:
 
         if status:
             return status
+        
+        if response == pkt:
+            self.logger.debug("Received same SPINEL packet. That's bootloader echo")
+            return -1
+
 
         if self.config.dlevel == 'RAW' or self.config.dlevel == 'PACKET':
             self.logger.debug("[ SPINEL  RESPONSE ]: " + ' '.join(format(x, '02x') for x in response))
@@ -743,11 +748,18 @@ class ElelabsUtilities:
                 elif new_version == 'zigbee':
                     self.flash("data/EFR32MG13/ELE_MG13_zb_ncp_115200_610_211112.gbl")
                 else:
-                    self.logger.critical("Unknown EZSP version")
+                    self.logger.critical("Unknown protocol version " + new_version)
             elif adapter_name == "ELR022" or adapter_name == "ELU012":
                 self.logger.critical("TODO!. Contact Elelabs at info@elelabs.com")
             elif adapter_name == "EZBPIS" or adapter_name == "EZBUSBA":
                 self.logger.critical("TODO!. Contact Elelabs at info@elelabs.com")
+            elif adapter_name == "ELU0143":
+                if new_version == 'thread':
+                    self.flash("data/EFR32MG21/ELU0143_MG21_ot_rcp_123_211211.gbl")
+                elif new_version == 'zigbee':
+                    self.flash("data/EFR32MG21/ELU0143_MG21_zb_ncp_6103_211211.gbl")
+                else:
+                    self.logger.critical("Unknown protocol version " + new_version)
             else:
                 self.logger.critical("Unknown Elelabs product %s detected.\r\nContact info@elelabs.com if you see this message for original Elelabs product" % adapter_name)
         elif adapter_status == AdapterModeProbeStatus.BOOTLOADER:
