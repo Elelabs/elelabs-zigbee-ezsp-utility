@@ -744,7 +744,7 @@ class ElelabsUtilities:
 
             if adapter_name == "ELR023" or adapter_name == "ELU013":
                 if new_version == 'thread':
-                    self.flash("data/EFR32MG13/ELE_MG13_ot_rcp_115200_120_211116.gbl")
+                    self.flash("data/EFR32MG13/ELE_MG13_ot_rcp_123_220206.gbl")
                 elif new_version == 'zigbee':
                     self.flash("data/EFR32MG13/ELE_MG13_zb_ncp_115200_610_211112.gbl")
                 else:
@@ -755,9 +755,9 @@ class ElelabsUtilities:
                 self.logger.critical("TODO!. Contact Elelabs at info@elelabs.com")
             elif adapter_name == "ELU0143":
                 if new_version == 'thread':
-                    self.flash("data/EFR32MG21/ELU0143_MG21_ot_rcp_123_211211.gbl")
+                    self.flash("data/EFR32MG21/ELU0143_MG21_ot_rcp_123_220131.gbl")
                 elif new_version == 'zigbee':
-                    self.flash("data/EFR32MG21/ELU0143_MG21_zb_ncp_6103_211211.gbl")
+                    self.flash("data/EFR32MG21/ELU0143_MG21_zb_ncp_6103_220131.gbl")
                 else:
                     self.logger.critical("Unknown protocol version " + new_version)
             else:

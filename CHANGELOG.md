@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.0.4] - 2022-02-08
+
+- 1.2.3 OpenThread RCP Firmware for ELU013/ELR023 fix 
+
 ## [0.0.3] - 2021-12-11
 
 - SPINEL OpenThread byte decoding bugfix
