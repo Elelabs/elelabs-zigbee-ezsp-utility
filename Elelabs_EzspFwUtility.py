@@ -760,6 +760,13 @@ class ElelabsUtilities:
                     self.flash("data/EFR32MG21/ELU0143_MG21_zb_ncp_6103_220131.gbl")
                 else:
                     self.logger.critical("Unknown protocol version " + new_version)
+            elif adapter_name == "ELU0141" or adapter_name == "ELU0142":
+                if new_version == 'thread':
+                    self.flash("data/EFR32MG21/ELU0141_MG21_ot_rcp_123_211204.gbl")
+                elif new_version == 'zigbee':
+                    self.flash("data/EFR32MG21/ELU0141_MG21_zb_ncp_6103_211204.gbl")
+                else:
+                    self.logger.critical("Unknown protocol version " + new_version)
             else:
                 self.logger.critical("Unknown Elelabs product %s detected.\r\nContact info@elelabs.com if you see this message for original Elelabs product" % adapter_name)
         elif adapter_status == AdapterModeProbeStatus.BOOTLOADER:

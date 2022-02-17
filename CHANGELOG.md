@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.0.5] - 2022-02-18
+
+- 6.10.3 Zigbee Firmware for ELU0141 and ELU0142 (just keep up with the latest EmberZnet SDK 6.10.3.0)
+- 1.2.3 OpenThread RCP Firmware for ELU0141 and ELU0142 (purely based on OpenThread RCP with minimal customisation OpenThread SDK 1.2.3.0)
+
 ## [0.0.4] - 2022-02-08
 
 - 1.2.3 OpenThread RCP Firmware for ELU013/ELR023 fix 
