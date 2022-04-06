@@ -14,6 +14,11 @@ Currently sold supported products based on Silicon Labs microcontrollers:
 - Elelabs Zigbee USB Adapter ELU013 (EFR32MG13P Silicon Labs MCU inside)
   - https://elelabs.com/products/elelabs-usb-adapter.html
 
+Upcoming experimentally supported products based on Silicon Labs microcontrollers:
+
+- Elelabs Zigbee USB Adapter ELU0141/ELU0142/ELU0143 (EFR32MG21 Silicon Labs MCU inside)
+  - https://elelabs.com/products/elelabs-usb-adapter.html
+
 Previously sold supported products based on Silicon Labs microcontrollers:
   
 - Elelabs Zigbee Raspberry Pi Shield ELR022 (EFR32MG1B Silicon Labs MCU inside)
