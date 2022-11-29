@@ -587,7 +587,7 @@ class ElelabsUtilities:
                     serialInterface = SerialInterface(self.config.port, 115200)
                     serialInterface.open()
 
-                # check if allready in bootloader mode
+                # check if already in bootloader mode
                 serialInterface.serial.write(b'\x0D')
                 first_line = serialInterface.serial.readline() # read blank line
                 if len(first_line) == 0:
@@ -642,11 +642,11 @@ class ElelabsUtilities:
                 else:
                     return -1
             else:
-                self.logger.info("Allready in normal mode. No need to restart")
+                self.logger.info("Already in normal mode. No need to restart")
                 return 0
         elif adapter_status == AdapterModeProbeStatus.BOOTLOADER:
             if mode == 'btl':
-                self.logger.info("Allready in bootloader mode. No need to restart")
+                self.logger.info("Already in bootloader mode. No need to restart")
                 return 0
             else:
                 serialInterface = SerialInterface(self.config.port, 115200)
@@ -802,10 +802,4 @@ if args.which == 'ele_update':
 
 if args.which == 'flash':
     elelabs.flash(args.file)
-
-
-
-
-
-
 
