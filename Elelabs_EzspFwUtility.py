@@ -68,18 +68,24 @@ class AdapterModeProbeStatus:
     ERROR = 3
 
 class SerialInterface:
-    def __init__(self, port, baudrate):
+    def __init__(self, port, baudrate, logger):
+        self.logger = logger
         self.port = port
         self.baudrate = baudrate
+        self.isOverNetwork = self.port.startswith("socket://")
 
     def open(self):
         try:
-            self.serial = serial.Serial(port=self.port,
-                baudrate=self.baudrate,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_ONE,
-                xonxoff=True,
-                timeout=3)
+            if self.isOverNetwork:
+                self.logger.info("Connecting to serial over network on %s...", self.port)
+                self.serial = serial.serial_for_url(self.port)
+            else:
+                self.serial = serial.Serial(port=self.port,
+                    baudrate=self.baudrate,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                    xonxoff=True,
+                    timeout=3)
         except Exception as e:
             raise Exception("PORT ERROR: %s" % str(e))
 
@@ -528,7 +534,7 @@ class ElelabsUtilities:
         self.config = config
 
     def probe(self):
-        serialInterface = SerialInterface(self.config.port, self.config.baudrate)
+        serialInterface = SerialInterface(self.config.port, self.config.baudrate, self.logger)
         serialInterface.open()
 
         ezsp = EzspProtocolInterface(serialInterface.serial, self.config, self.logger)
@@ -584,7 +590,7 @@ class ElelabsUtilities:
                 if self.config.baudrate != 115200:
                     serialInterface.close()
                     time.sleep(1)
-                    serialInterface = SerialInterface(self.config.port, 115200)
+                    serialInterface = SerialInterface(self.config.port, 115200, self.logger)
                     serialInterface.open()
 
                 # check if allready in bootloader mode
@@ -649,7 +655,7 @@ class ElelabsUtilities:
                 self.logger.info("Allready in bootloader mode. No need to restart")
                 return 0
             else:
-                serialInterface = SerialInterface(self.config.port, 115200)
+                serialInterface = SerialInterface(self.config.port, 115200, self.logger)
                 serialInterface.open()
 
                 self.logger.info("Launch in normal application mode")
@@ -690,7 +696,7 @@ class ElelabsUtilities:
             self.logger.critical("EZSP adapter not in the bootloader mode. Can't perform update procedure")
             return
 
-        self.serialInterface = SerialInterface(self.config.port, 115200)
+        self.serialInterface = SerialInterface(self.config.port, 115200, self.logger)
         self.serialInterface.open()
         # Enter '1' to initialize X-MODEM mode
         self.serialInterface.serial.write(b'\x0A')
