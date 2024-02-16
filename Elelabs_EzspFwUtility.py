@@ -52,6 +52,7 @@ parser_flash.add_argument('-f', '--file', type=lambda x: is_valid_file(parser, x
 parser_flash.add_argument('-p','--port', type=str, required=True, help='Serial port for the EZSP Product')
 parser_flash.add_argument('-b','--baudrate', type=str, required=False, default=115200, help='Serial baud rate for NCP (115200/57600)')
 parser_flash.add_argument('-d','--dlevel', choices=['RAW', 'PACKET', 'DEBUG', 'INFO'], required=False, default='INFO', help='Debug verbosity level')
+parser_flash.add_argument('-m','--mode', choices=['xmodem', 'autobtl'], required=False, default='autobtl', help='Required operation mode. Xmodem does not restart the device')
 parser_flash.set_defaults(which='flash')
 
 parser_ele_update = subparsers.add_parser('ele_update', help='Updates the Elelabs product to a latest available version')
@@ -613,7 +614,7 @@ class ElelabsUtilities:
         adapter_status, adapter_name = self.probe()
         if adapter_status == AdapterModeProbeStatus.ZIGBEE or adapter_status == AdapterModeProbeStatus.THREAD:
             if mode == 'btl':
-                serialInterface = SerialInterface(self.config.port, self.config.baudrate)
+                serialInterface = SerialInterface(self.config.port, self.config.baudrate, self.logger)
                 serialInterface.open()
 
                 self.logger.info("Launch in bootloader mode")
@@ -673,7 +674,7 @@ class ElelabsUtilities:
                 else:
                     return -1
 
-    def flash(self, filename):
+    def flash(self, filename, mode):
         # STATIC FUNCTIONS
         def getc(size, timeout=1):
             read_data = self.serialInterface.serial.read(size)
@@ -692,7 +693,7 @@ class ElelabsUtilities:
             self.logger.critical('Aborted! Gecko bootloader accepts .gbl or .ebl images only.')
             return
 
-        if self.restart("btl"):
+        if mode == 'autobtl' and not self.restart("btl"):
             self.logger.critical("EZSP adapter not in the bootloader mode. Can't perform update procedure")
             return
 
@@ -807,7 +808,7 @@ if args.which == 'ele_update':
     elelabs.ele_update(args.version)
 
 if args.which == 'flash':
-    elelabs.flash(args.file)
+    elelabs.flash(args.file, args.mode)
 
 
 
