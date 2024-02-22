@@ -226,7 +226,6 @@ class EzspProtocolInterface:
         self.VERSION = b'\x00'
         self.GET_VALUE = b'\xAA'
         self.GET_MFG_TOKEN = b'\x0B'
-        self.SET_MFG_TOKEN = b'\x0C'
         self.LAUNCH_STANDALONE_BOOTLOADER = b'\x8F'
 
         self.EZSP_VALUE_VERSION_INFO = 0x11
@@ -286,13 +285,6 @@ class EzspProtocolInterface:
         tokenDataLength = resp[5]
         tokenData = resp[6:]
         return tokenDataLength, tokenData
-
-    def setMfgToken(self, tokenId, tokenString):
-        mfg_token_str_16bytes = bytearray([0xFF] * 16)
-
-        for i in range(0, len(tokenString)):
-            mfg_token_str_16bytes[i] = ord(tokenString[i])
-        self.sendEzspCommand(self.SET_MFG_TOKEN + bytearray([tokenId]) + bytearray([16]) + mfg_token_str_16bytes, 'setTokenString: %s' % tokenString)
 
     def launchStandaloneBootloader(self, mode, modeName):
         resp = self.sendEzspCommand(self.LAUNCH_STANDALONE_BOOTLOADER + bytearray([mode]), 'launchStandaloneBootloader: %s' % modeName)
@@ -556,19 +548,18 @@ class ElelabsUtilities:
                 self.logger.info('EZSP status returned %d' % status)
 
             token_data_length, token_data = ezsp.getMfgToken(ezsp.EZSP_MFG_STRING, "EZSP_MFG_STRING")
-            manuf_name = token_data.decode("ascii", "ignore")
-            token_data_length, token_data = ezsp.getMfgToken(ezsp.EZSP_MFG_BOARD_NAME, "EZSP_MFG_BOARD_NAME")
-            adapter_name = token_data.decode("ascii", "ignore")
+            if token_data.decode("ascii", "ignore") == "Elelabs":
+                token_data_length, token_data = ezsp.getMfgToken(ezsp.EZSP_MFG_BOARD_NAME, "EZSP_MFG_BOARD_NAME")
+                adapter_name = token_data.decode("ascii", "ignore")
 
-            self.logger.info("Elelabs Zigbee adapter detected:")
-            self.logger.info("Adapter: %s" % adapter_name)
-            self.logger.info("Manufacturer: %s" % manuf_name)
+                self.logger.info("Elelabs Zigbee adapter detected:")
+                self.logger.info("Adapter: %s" % adapter_name)
+            else:
+                adapter_name = None
+                self.logger.info("Generic Zigbee EZSP adapter detected:")
+
             self.logger.info("Firmware: %s" % firmware_version)
             self.logger.info("EZSP v%d" % ezsp.ezspVersion)
-
-            # TODO: Move somewhere
-            ezsp.setMfgToken(ezsp.EZSP_MFG_STRING, "KStrehlau")
-            ezsp.setMfgToken(ezsp.EZSP_MFG_BOARD_NAME, "ZigbeeGateway")
 
             serialInterface.close()
             return AdapterModeProbeStatus.ZIGBEE, adapter_name
@@ -790,6 +781,9 @@ class ElelabsUtilities:
         else:
             self.logger.critical("No upgradable device found")
 
+
+
+
 args = parser.parse_args()
 
 main_app_loger = logging.getLogger("Elelabs_EzspFwUtility")
@@ -815,10 +809,3 @@ if args.which == 'ele_update':
 
 if args.which == 'flash':
     elelabs.flash(args.file, args.mode)
-
-
-
-
-
-
-
